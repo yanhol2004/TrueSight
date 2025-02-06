@@ -1,7 +1,7 @@
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log("Received message in background.js:", request);
 
-    // Handle headline analysis request
+    // Handle headline analysis
     if (request.action === "analyzeHeadline") {
         const { headline, articleText } = request;
         console.log("Analyzing headline and article text:", headline, articleText);
@@ -9,7 +9,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         checkFact(headline, articleText)
             .then((result) => {
                 console.log("Headline analysis complete:", result);
-                chrome.runtime.sendMessage({
+
+                // Send the results back to the sender's tab
+                chrome.tabs.sendMessage(sender.tab.id, {
                     action: "headlineAnalysisResults",
                     results: result,
                 });
@@ -23,14 +25,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return true; // Keeps the messaging channel open for async response
     }
 
-    // Handle image analysis request
+    // Handle image analysis
     if (request.action === "analyzeImages" && request.images) {
         console.log("Received image analysis request:", request.images);
 
         analyzeImages(request.images)
             .then((results) => {
                 console.log("Image analysis complete:", results);
-                chrome.runtime.sendMessage({
+
+                // Send the results back to the sender's tab
+                chrome.tabs.sendMessage(sender.tab.id, {
                     action: "imageAnalysisResults",
                     results,
                 });
@@ -121,34 +125,27 @@ async function checkFact(headline) {
 //     chrome.runtime.sendMessage({ action: "imageAnalysisResults", results });
 // }
 
+// Analyze images for deepfakes (simulated API request)
 async function analyzeImages(images) {
     const results = [];
 
     for (let image of images) {
         console.log("Processing Image:", image.src); // Log each image being processed
 
-        // Simulated analysis result with a fixed score
-        const deepfakeScore = 0.9; // Fixed value for testing
+        // Simulated deepfake analysis result
+        const deepfakeScore = 0.9; // Random score for simulation
         results.push({
-            element: image.element,
-            isDeepfake: deepfakeScore > 0.5, // Flag as deepfake
+            imageUrl: image.src,
+            isDeepfake: deepfakeScore > 0.5, // Flag as deepfake if score > 0.5
             deepfakeScore,
-            imageUrl: image.src
         });
     }
 
     console.log("Analysis Results:", results); // Log results
-    chrome.storage.local.set({ deepfakeResults: results });
-    chrome.runtime.sendMessage({ 
-        action: "imageAnalysisResults", 
-        results 
-    }, () => {
-        if (chrome.runtime.lastError) {
-            console.error("Error sending message:", chrome.runtime.lastError.message);
-        } else {
-            console.log("Message sent with results:", results);
-        }
-    });
-}
 
+    // Store results in Chrome's local storage
+    chrome.storage.local.set({ deepfakeResults: results });
+
+    return results; // Return results for messaging
+}
 

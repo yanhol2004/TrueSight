@@ -75,10 +75,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             matchingImages.forEach((img) => {
                 // Highlight images based on analysis results
                 if (result.isDeepfake) {
-                    img.style.border = "4px solid red";
+                    img.style.setProperty("overflow", "visible", "important");
+                    img.style.setProperty("overflow-clip-margin", "none", "important");
+                
+                    img.style.border = "15px solid red";
                     img.title = `⚠️ Deepfake Detected (Score: ${result.deepfakeScore.toFixed(2)})`;
+                    img.style.zIndex = "1000";
+                    img.style.boxSizing = "border-box";
+                    img.style.outline = "4px solid red"; // Alternative to border
+                    img.style.margin = "5px"; // Ensure some space around the image
                 } else {
-                    img.style.border = "4px solid green";
+                    img.style.border = "10px solid green";
                     img.title = `✅ Not a Deepfake (Score: ${result.deepfakeScore.toFixed(2)})`;
                 }
                 console.log(`Applied border to image: ${img.src}`);
@@ -87,6 +94,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     } else if (message.action === "headlineAnalysisResults") {
         console.log("Received headline analysis results:", message.results);
     }
+    return true;
 });
 
 // Observe dynamically loaded images
