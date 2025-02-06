@@ -1,3 +1,4 @@
+console.log("Content script loaded.");
 // Extracts the main headline
 function getHeadline() {
     // Select all <h1> elements
@@ -37,25 +38,51 @@ function getLargeImages() {
     return largeImages;
 }
 
-// // Use MutationObserver to handle dynamically loaded content
-// function observeDOMChanges() {
-//     const observer = new MutationObserver(() => {
-//         const images = getLargeImages();
-//         if (images.length > 0) {
-//             console.log("Images found:", images);
-//             observer.disconnect(); // Stop observing once images are found
-//             chrome.runtime.sendMessage({
-//                 action: "analyzeImages",
-//                 images
-//             });
-//         }
-//     });
+function scrapeImagesFromTwitter() {
+    const images = [];
+    
+    // Select all image elements
+    document.querySelectorAll('img').forEach(img => {
+        // Debug: Print image information
+        console.log(`Found image: ${img.src}, class: ${img.className}, width: ${img.naturalWidth}, height: ${img.naturalHeight}`);
 
-//     observer.observe(document.body, { childList: true, subtree: true });
-// }
+        // Exclude small images and potential logo images
+        if (
+            img.naturalWidth > 200 &&
+            img.naturalHeight > 200 &&
+            !img.className.toLowerCase().includes('logo')
+        ) {
+            images.push({
+                src: img.src,
+                width: img.naturalWidth,
+                height: img.naturalHeight,
+                class: img.className
+            });
+        }
+    });
 
-// Start observing
-// observeDOMChanges();
+    // Debug: Print total images found
+    console.log(`Total images scraped: ${images.length}`);
+    return images;
+}
+
+// Observe DOM changes for dynamically loaded content
+function observeTwitterImages() {
+    const observer = new MutationObserver(() => {
+        const images = scrapeImagesFromTwitter();
+        if (images.length > 0) {
+            console.log('Sending scraped images to the background script...');
+            chrome.runtime.sendMessage({ action: 'analyzeImages', images });
+            observer.disconnect(); // Stop observing once images are scraped
+        }
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+}
+
+// Start observing for images
+observeTwitterImages();
+
 
 // Send data to the background script
 chrome.runtime.sendMessage({
@@ -65,20 +92,27 @@ chrome.runtime.sendMessage({
     images: getLargeImages()
 });
 
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === "imageAnalysisResults") {
+        console.log("Received analysis results:", message.results);
 
-// // Listen for image analysis results from the background script
-// chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-//     if (message.action === "imageAnalysisResults") {
-//         message.results.forEach(result => {
-//             if (result.isDeepfake) {
-//                 // Highlight deepfake images with a red border
-//                 result.element.style.border = "4px solid red";
-//                 result.element.title = `⚠️ Deepfake Detected! (Score: ${result.deepfakeScore.toFixed(2)})`;
-//             } else {
-//                 // Optionally mark non-deepfake images with a green border
-//                 result.element.style.border = "4px solid green";
-//                 result.element.title = `✅ Not a Deepfake (Score: ${result.deepfakeScore.toFixed(2)})`;
-//             }
-//         });
-//     }
-// });
+        message.results.forEach((result) => {
+            // Find all matching images on the page
+            const matchingImages = Array.from(document.querySelectorAll("img")).filter(
+                (img) => img.src === result.imageUrl
+            );
+
+            matchingImages.forEach((img) => {
+                // Apply a red or green border based on deepfake detection
+                if (result.isDeepfake) {
+                    img.style.border = "4px solid red";
+                    img.title = `⚠️ Deepfake Detected (Score: ${result.deepfakeScore.toFixed(2)})`;
+                } else {
+                    img.style.border = "4px solid green";
+                    img.title = `✅ Not a Deepfake (Score: ${result.deepfakeScore.toFixed(2)})`;
+                }
+                console.log(`Applied border to image: ${img.src}`);
+            });
+        });
+    }
+});

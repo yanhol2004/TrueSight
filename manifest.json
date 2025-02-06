@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Fake News & Image Detector",
+  "name": "TrueSight",
   "version": "1.0",
   "description": "Fact-check news articles and detect fake images on webpages.",
   "permissions": ["activeTab", "storage", "scripting"],
@@ -10,7 +10,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://*/*"],
+      "matches": ["<all_urls>"],
       "js": ["content.js"]
     }
   ],

@@ -3,9 +3,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         checkFact(request.headline);
         console.log("headline:", request.headline);
     }
-    // if (request.images.length > 0) {
-    //     reverseImageSearch(request.images);
-    // }
+    // Handle image analysis requests
+    if (request.action === "analyzeImages" && request.images) {
+        console.log("Received analyzeImages request:", request.images);
+        analyzeImages(request.images);
+
+        return true; // Keeps the messaging channel open for asynchronous response
+    }
 });
 
 // Extract keywords from the headline
@@ -49,7 +53,7 @@ async function checkFact(headline) {
 // const API_SECRET = "your_api_secret"; // Replace with your API secret
 
 // Function to analyze images using the Sightengine API
-// async function analyzeImages(images) {
+// async function (images) {
 //     const results = [];
 
 //     for (let image of images) {
@@ -100,12 +104,17 @@ async function analyzeImages(images) {
     }
 
     console.log("Analysis Results:", results); // Log results
-    chrome.runtime.sendMessage({ action: "imageAnalysisResults", results });
+    chrome.storage.local.set({ deepfakeResults: results });
+    chrome.runtime.sendMessage({ 
+        action: "imageAnalysisResults", 
+        results 
+    }, () => {
+        if (chrome.runtime.lastError) {
+            console.error("Error sending message:", chrome.runtime.lastError.message);
+        } else {
+            console.log("Message sent with results:", results);
+        }
+    });
 }
 
-// Listen for image analysis requests
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.action === "analyzeImages") {
-        analyzeImages(message.images);
-    }
-});
+
