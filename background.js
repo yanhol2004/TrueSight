@@ -1,3 +1,4 @@
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log("Received message in background.js:", request);
 
@@ -64,14 +65,32 @@ function extractKeywords(headline) {
 
 
 async function checkFact(headline) {
-    let apiKey = "";
+    const credentials = await new Promise((resolve, reject) => {
+        chrome.storage.local.get(["google_api_key"], (data) => {
+            if (data.google_api_key) {
+                resolve({
+                    apiKey: data.google_api_key,
+                });
+            } else {
+                reject("API credentials not found in local storage.");
+            }
+        });
+    }).catch((error) => {
+        console.error(error);
+        return null; // Stop execution if credentials are missing
+    });
+
+    if (!credentials) {
+        return []; // Return an empty results array if credentials are missing
+    }
+
 
     // Extract keywords from the headline
     const keywords = extractKeywords(headline);
     console.log("Extracted Keywords:", keywords);
 
     // Query Google Fact Check Tools API
-    let url = `https://factchecktools.googleapis.com/v1alpha1/claims:search?query=${encodeURIComponent(keywords)}&key=${apiKey}`;
+    let url = `https://factchecktools.googleapis.com/v1alpha1/claims:search?query=${encodeURIComponent(keywords)}&key=${credentials.apiKey}`;
 
     try {
         let response = await fetch(url);
@@ -84,46 +103,6 @@ async function checkFact(headline) {
         console.error("Error fetching API response:", error);
     }
 }
-
-
-// Sightengine API credentials
-// const API_USER = "your_api_user"; // Replace with your API user
-// const API_SECRET = "your_api_secret"; // Replace with your API secret
-
-// Function to analyze images using the Sightengine API
-// async function (images) {
-//     const results = [];
-
-//     for (let image of images) {
-//         try {
-//             // // Make API request to analyze the image
-//             // const response = await axios.get("https://api.sightengine.com/1.0/check.json", {
-//             //     params: {
-//             //         url: image.src,
-//             //         models: "deepfake",
-//             //         api_user: API_USER,
-//             //         api_secret: API_SECRET
-//             //     }
-//             // });
-
-//             // // Extract the deepfake score
-//             // const deepfakeScore = response.data.type.deepfake;
-//             const deepfakeScore = 0.9
-//             // Push analysis result
-//             results.push({
-//                 element: image.element,
-//                 isDeepfake: deepfakeScore > 0.5, // Flag as deepfake if score > 0.5
-//                 deepfakeScore,
-//                 imageUrl: image.src
-//             });
-//         } catch (error) {
-//             console.error("Error analyzing image:", image.src, error.message);
-//         }
-//     }
-
-//     // Send the analysis results back to the content script
-//     chrome.runtime.sendMessage({ action: "imageAnalysisResults", results });
-// }
 
 // Analyze images for deepfakes (simulated API request)
 async function analyzeImages(images) {
@@ -204,13 +183,13 @@ async function analyzeImages(images) {
         } catch (error) {
             console.error(`Error analyzing image (${image.src}):`, error.message);
             // Push a default result for failed API requests
-            results.push({
-                imageUrl: image.src,
-                isDeepfake: false,
-                isGenAI: true,
-                deepfakeScore: 0,
-                genaiScore: 0
-            });
+                results.push({
+                    imageUrl: image.src,
+                    isDeepfake: false,
+                    isGenAI: false,
+                    deepfakeScore: 0,
+                    genaiScore: 0
+                });
         }
     }
 

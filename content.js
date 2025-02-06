@@ -23,14 +23,7 @@ function getLargeImages() {
     const images = document.querySelectorAll("img");
     const largeImages = Array.from(images)
         .filter((img) => img.naturalWidth > 200 && img.naturalHeight > 200)
-        .map((img) => ({ src: img.src }))
-        .filter((image) => {
-            if (seen.has(image.src)) {
-                return false; // Skip duplicates
-            }
-            seen.add(image.src);
-            return true;
-        });
+        .map((img) => ({ src: img.src }));
     console.log("Extracted Images:", largeImages);
     return largeImages;
 }

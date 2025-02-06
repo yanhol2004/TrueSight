@@ -6,10 +6,10 @@ document.addEventListener("DOMContentLoaded", () => {
     // Load and display fact-checking and deepfake analysis results
     chrome.storage.local.get(["factCheckResult", "deepfakeResults"], (data) => {
         // Display the headline
-        const headline = "Pope Francis endorsed Donald Trump for president."; // Example
+        const headline = "No headline."; 
         if (headlineEl) {
             headlineEl.textContent = headline;
-        }
+        } 
 
         // Fact-checking result
         if (factCheckEl) {
