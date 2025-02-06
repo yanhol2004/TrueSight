@@ -209,7 +209,7 @@ async function analyzeImages(images) {
                 isDeepfake: false,
                 isGenAI: true,
                 deepfakeScore: 0,
-                genaiScore: 0.99
+                genaiScore: 0
             });
         }
     }
