@@ -1,16 +1,50 @@
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.headline) {
-        checkFact(request.headline);
-        console.log("headline:", request.headline);
-    }
-    // Handle image analysis requests
-    if (request.action === "analyzeImages" && request.images) {
-        console.log("Received analyzeImages request:", request.images);
-        analyzeImages(request.images);
+    console.log("Received message in background.js:", request);
 
-        return true; // Keeps the messaging channel open for asynchronous response
+    // Handle headline analysis request
+    if (request.action === "analyzeHeadline") {
+        const { headline, articleText } = request;
+        console.log("Analyzing headline and article text:", headline, articleText);
+
+        checkFact(headline, articleText)
+            .then((result) => {
+                console.log("Headline analysis complete:", result);
+                chrome.runtime.sendMessage({
+                    action: "headlineAnalysisResults",
+                    results: result,
+                });
+                sendResponse({ status: "Headline analysis complete" });
+            })
+            .catch((error) => {
+                console.error("Error analyzing headline:", error);
+                sendResponse({ status: "Error analyzing headline" });
+            });
+
+        return true; // Keeps the messaging channel open for async response
+    }
+
+    // Handle image analysis request
+    if (request.action === "analyzeImages" && request.images) {
+        console.log("Received image analysis request:", request.images);
+
+        analyzeImages(request.images)
+            .then((results) => {
+                console.log("Image analysis complete:", results);
+                chrome.runtime.sendMessage({
+                    action: "imageAnalysisResults",
+                    results,
+                });
+                sendResponse({ status: "Image analysis complete" });
+            })
+            .catch((error) => {
+                console.error("Error analyzing images:", error);
+                sendResponse({ status: "Error analyzing images" });
+            });
+
+        return true; // Keeps the messaging channel open for async response
     }
 });
+
 
 // Extract keywords from the headline
 function extractKeywords(headline) {
