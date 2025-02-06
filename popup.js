@@ -22,7 +22,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <p><a href="${review.url}" target="_blank">Source</a></p>
                 `;
             } else {
-                factCheckEl.innerHTML = `<p>No fact-checking data available for this headline.</p>`;
+                factCheckEl.innerHTML = `<p>No fact-checking data available.</p>`;
             }
         }
 
@@ -37,12 +37,21 @@ document.addEventListener("DOMContentLoaded", () => {
             // Display each analyzed image result
             results.forEach((result, index) => {
                 const li = document.createElement("li");
+                
                 li.innerHTML = `
                     <img src="${result.imageUrl}" alt="Analyzed Image" height="50" style="margin-right: 10px; width: auto;">
-                    ${result.isDeepfake
-                        ? `⚠️ <strong>Deepfake Detected</strong> (Score: ${result.deepfakeScore.toFixed(2)})`
-                        : `✅ <strong>Not a Deepfake</strong> (Score: ${result.deepfakeScore.toFixed(2)})`}
+                    <div>
+                        <p>${result.isDeepfake
+                            ? `⚠️ <strong>Deepfake Detected</strong> (Score: ${result.deepfakeScore.toFixed(2)})`
+                            : `✅ <strong>Not a Deepfake</strong> (Score: ${result.deepfakeScore.toFixed(2)})`}
+                        </p>
+                        <p>${result.isGenAI
+                            ? `⚠️ <strong>GenAI Content Detected</strong> (Score: ${result.genaiScore.toFixed(2)})`
+                            : `✅ <strong>Not AI-Generated</strong> (Score: ${result.genaiScore.toFixed(2)})`}
+                        </p>
+                    </div>
                 `;
+
                 imageResultsEl.appendChild(li);
             });
         }

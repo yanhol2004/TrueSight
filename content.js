@@ -23,7 +23,14 @@ function getLargeImages() {
     const images = document.querySelectorAll("img");
     const largeImages = Array.from(images)
         .filter((img) => img.naturalWidth > 200 && img.naturalHeight > 200)
-        .map((img) => ({ src: img.src }));
+        .map((img) => ({ src: img.src }))
+        .filter((image) => {
+            if (seen.has(image.src)) {
+                return false; // Skip duplicates
+            }
+            seen.add(image.src);
+            return true;
+        });
     console.log("Extracted Images:", largeImages);
     return largeImages;
 }
@@ -73,22 +80,29 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             );
 
             matchingImages.forEach((img) => {
-                // Highlight images based on analysis results
-                if (result.isDeepfake) {
-                    img.style.setProperty("overflow", "visible", "important");
-                    img.style.setProperty("overflow-clip-margin", "none", "important");
-                
-                    img.style.border = "15px solid red";
-                    img.title = `⚠️ Deepfake Detected (Score: ${result.deepfakeScore.toFixed(2)})`;
-                    img.style.zIndex = "1000";
-                    img.style.boxSizing = "border-box";
-                    img.style.outline = "4px solid red"; // Alternative to border
-                    img.style.margin = "5px"; // Ensure some space around the image
-                } else {
-                    img.style.border = "10px solid green";
-                    img.title = `✅ Not a Deepfake (Score: ${result.deepfakeScore.toFixed(2)})`;
+                let borderColor = "green"; // Default to green if no issue
+                let tooltip = `✅ Not a Deepfake (Score: ${result.deepfakeScore.toFixed(2)}) | ✅ Not AI-Generated (Score: ${result.genaiScore.toFixed(2)})`;
+            
+                // If flagged as deepfake or GenAI, use a red border
+                if (result.isDeepfake || result.isGenAI) {
+                    borderColor = "red";
+                    tooltip = `${result.isDeepfake ? `⚠️ Deepfake Detected (Score: ${result.deepfakeScore.toFixed(2)})` : `✅ Not a Deepfake (Score: ${result.deepfakeScore.toFixed(2)})`}`;
+            
+                    tooltip += `| \n ${result.isGenAI ? `⚠️ GenAI Content Detected (Score: ${result.genaiScore.toFixed(2)})` : `✅ Not AI-Generated (Score: ${result.genaiScore.toFixed(2)})`}`;
                 }
-                console.log(`Applied border to image: ${img.src}`);
+            
+                // Apply styles to the image
+                img.style.setProperty("overflow", "visible", "important");
+                img.style.setProperty("overflow-clip-margin", "none", "important");
+            
+                img.style.border = `5px solid ${borderColor}`;
+                // img.style.outline = borderColor === "red" ? "4px solid red" : ""; // Extra visibility
+                img.style.boxSizing = "border-box";
+                // img.style.margin = "5px"; // Ensure space around the image
+                img.style.zIndex = "1000"; // Bring it to the front
+                img.title = tooltip; // Display detailed info on hover
+            
+                console.log(`Applied ${borderColor} border to image: ${img.src}`);
             });
         });
     } else if (message.action === "headlineAnalysisResults") {
@@ -111,6 +125,7 @@ function observeDynamicImages() {
 // Start analyses
 function init() {
     console.log("Initializing content script...");
+    
     analyzeHeadlineAndText(); // Analyze headline and text
     analyzeImages(getLargeImages()); // Analyze initially loaded images
     observeDynamicImages(); // Watch for dynamically loaded images
